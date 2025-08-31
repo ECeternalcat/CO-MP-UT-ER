@@ -1,0 +1,23 @@
+{
+    "system_online": "システムオンライン。すべてのモジュールが正常に動作しています。ようこそ、{user}。",
+    "system_shutdown": "システムをシャットダウンしています。良い一日を。",
+    "external_power_connected": "外部電源が接続されました。バッテリー充電中。",
+    "switched_to_battery": "バッテリー電源に切り替えました。省電力プロトコルを開始します。",
+    "battery_level_report": "バッテリー残量は {level}% です。",
+    "battery_level_critical": "警告：バッテリー残量が危険水準です。電源に接続してください。",
+    "usb_device_detected": "USB デバイスを検出しました。署名を解析中。",
+    "usb_device_disconnected": "USB デバイスが切断されました。",
+    "display_connected": "新しいディスプレイ出力を検出しました。ビジュアルインターフェースを拡張します。",
+    "network_connected": "ネットワーク接続が確立されました。{SSID} に接続しました。",
+    "network_disconnected": "ネットワーク接続が失われました。再接続を試みています。",
+    "battery_inserted": "バッテリーパックがオンライン。現在の残量は {level}% です。使用中にご注意ください。",
+    "battery_inserted_error": "バッテリーパックがオンライン。警告：現在の残量を確認できません。バッテリーまたはシステムを確認してください。",
+    "battery_removed": "警告：メインバッテリーパックが切断されました。継続的な電源供給を確保してください。",
+    "network_connected_wifi": "Wi-Fi 接続が確立されました。{SSID} に接続しました。",
+    "network_connected_cellular": "携帯ネットワーク接続が確立されました。モバイルデータが有効です。",
+    "network_connected_ethernet": "有線接続が確立されました。ネットワーク接続が有効です。",
+    "network_connected_unknown": "ネットワーク接続が確立されました。{SSID} に接続しました。",
+    "system_going_to_sleep": "システムはスリープモードに入ります。不要なモジュールをシャットダウンします。",
+    "system_resumed_from_sleep": "システムがスリープから復帰しました。すべてのモジュールが再びオンラインになりました。"
+
+}

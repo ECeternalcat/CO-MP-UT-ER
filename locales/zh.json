@@ -1,0 +1,23 @@
+{
+    "system_online": "系统已上线。所有模块运行正常。欢迎，{user}。",
+    "system_shutdown": "系统正在关机。祝您工作顺利。",
+    "external_power_connected": "外部电源已连接。电池正在充电。",
+    "switched_to_battery": "已切换至电池供电。已启动能耗协议。",
+    "battery_level_report": "电池电量为 {level}%。",
+    "battery_level_critical": "警告：电池电量严重不足。请连接电源。",
+    "usb_device_detected": "检测到 USB 设备。正在分析签名。",
+    "usb_device_disconnected": "USB 设备已断开。",
+    "display_connected": "检测到新显示输出。扩展视觉界面。",
+    "network_connected": "网络连接已建立。已连接到 {SSID}。",
+    "network_disconnected": "网络连接丢失。正在尝试重新建立连接。",
+    "battery_inserted": "电池已上线。当前电量为 {level}%。请在使用过程中注意监控。",
+    "battery_inserted_error": "电池已上线。警告：无法确定当前电池电量。请检查电池或系统。",
+    "battery_removed": "警告：主电池已断开。请确保持续供电。",
+    "network_connected_wifi": "Wi-Fi 连接已建立。已连接到 {SSID}。",
+    "network_connected_cellular": "广域网络连接已建立。移动数据已启用。",
+    "network_connected_ethernet": "有线连接已建立。网络连接处于活动状态。",
+    "network_connected_unknown": "网络连接已建立。已连接到 {SSID}。",
+    "system_going_to_sleep": "系统进入睡眠模式。正在关闭非关键模块。",
+    "system_resumed_from_sleep": "系统已从睡眠恢复。所有模块已重新上线。"
+
+}

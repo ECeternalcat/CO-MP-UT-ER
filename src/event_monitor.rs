@@ -4,7 +4,7 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use tokio::runtime::Runtime;
 
-use log::{info, error, warn, debug};
+use log::{info, error};
 
 use windows::core::IInspectable;
 use windows::Foundation::{EventHandler, TypedEventHandler};

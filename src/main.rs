@@ -6,6 +6,8 @@ mod tts_engine;
 mod i18n;
 mod event_monitor;
 mod config;
+mod startup;
+mod settings_ui;
 
 // --- 新增: 引入日志宏 ---
 use log::{info, error, warn, debug};
@@ -26,6 +28,7 @@ use windows::Win32::Devices::Usb::GUID_DEVINTERFACE_USB_DEVICE;
 use windows::Win32::System::WindowsProgramming::GetUserNameW;
 use windows::core::PWSTR;
 
+use crate::config::Config;
 use crate::event_monitor::{SystemEvent, ConnectionType, start_monitoring, IS_SYSTEM_ASLEEP};
 use crate::i18n::I18nManager;
 use crate::tts_engine::TtsEngine;
@@ -33,7 +36,8 @@ use crate::tts_engine::TtsEngine;
 // --- 全域常量 ---
 const WM_APP_TRAY_MSG: u32 = WM_APP + 1;
 const ID_MENU_PAUSE_RESUME: u32 = 1001;
-const ID_MENU_EXIT: u32 = 1002;
+const ID_MENU_SETTINGS: u32 = 1002;
+const ID_MENU_EXIT: u32 = 1003;
 
 struct WindowProcData {
     sender: mpsc::Sender<SystemEvent>,
@@ -48,6 +52,8 @@ struct AppState {
     username: String,
     last_usb_connect_time: Option<Instant>,
     last_usb_disconnect_time: Option<Instant>,
+    config: Config,
+    available_voices: Vec<String>,
 }
 
 // --- 修改: main 函数返回 Result ---
@@ -58,22 +64,72 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("高级提示 (Advanced Beeper) 应用程式启动");
     info!("-----------------------------------------");
 
-    // --- 1. 初始化 (不变) ---
+    // --- 1. 初始化 ---
+    // 步骤 1: 首先加载配置
+    let config = Config::load();
+    info!("配置文件 config.json 已加载: {:?}", config);
+
+    let effective_locale = match &config.language {
+        Some(lang_code) => {
+            info!("配置中指定了语言: '{}'", lang_code);
+            lang_code.clone()
+        },
+        None => {
+            info!("配置中未指定语言，尝试自动检测系统语言。");
+            match sys_locale::get_locale() {
+                Some(sys_lang) => {
+                    info!("检测到系统语言: {}", sys_lang);
+                    let lang_prefix = sys_lang.split('-').next().unwrap_or(&sys_lang);
+                    match lang_prefix {
+                        "zh" => "zh".to_string(),
+                        "ja" => "ja".to_string(),
+                        _ => {
+                            info!("系统语言 '{}' 不在支持列表(zh, ja)中，回退到英语。", lang_prefix);
+                            "en".to_string()
+                        }
+                    }
+                },
+                None => {
+                    warn!("无法获取系统语言，回退到英语。");
+                    "en".to_string()
+                }
+            }
+        }
+    };
+
+    // 步骤 2: 根据加载的配置，同步注册表
+    if let Err(e) = startup::set_auto_start(config.auto_start) {
+        error!("启动时同步开机自启动设置失败: {}", e);
+    }
+
     let (sender, receiver) = mpsc::channel();
-    let locale = "en";
+    let locale = "en"; // 备用参数
     
-    let tts_engine = TtsEngine::new(locale).map_err(|e| {
+    // 步骤 3: 初始化语音引擎时，传入配置
+    let tts_engine = TtsEngine::new(&config).map_err(|e| {
         error!("语音引擎初始化失败: {}", e);
         e
     })?;
-    info!("TTS 语音引擎初始化成功。");
 
-    let i18n_manager = I18nManager::new(locale).map_err(|e| {
-        error!("语言档案(locale: {})载入失败: {}", locale, e);
+    // --- 新增: 在这里获取并缓存语音列表 ---
+    let available_voices = match tts_engine.list_available_voices() {
+        Ok(voices) => {
+            info!("成功获取到 {} 个可用语音。", voices.len());
+            voices
+        },
+        Err(e) => {
+            error!("启动时获取可用语音列表失败: {}", e);
+            vec![] // 如果失败，则提供一个空的列表
+        }
+    };
+
+    let i18n_manager = I18nManager::new(&effective_locale).map_err(|e| {
+        error!("语言档案(locale: {})载入失败: {}", &effective_locale, e);
         e
     })?;
-    info!("国际化语言档案 (locale: {}) 载入成功。", locale);
+    info!("国际化语言档案 (locale: {}) 载入成功。", effective_locale);
 
+    // 步骤 4: 创建共享状态
     let app_state = Arc::new(Mutex::new(AppState {
         is_paused: false,
         tts_engine,
@@ -81,7 +137,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         username: get_windows_username(),
         last_usb_connect_time: None,
         last_usb_disconnect_time: None,
+        config,
+        available_voices,
     }));
+
     info!("当前 Windows 用户名: {}", app_state.lock().unwrap().username);
     
     // --- 新增：发送启动事件 ---
@@ -230,6 +289,14 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                 ID_MENU_PAUSE_RESUME => {
                     info!("wndproc: '暂停/恢复播报' 菜单项被点击。");
                     // TODO: 实现暂停/恢复逻辑
+                }
+                // --- 新增: 处理设置菜单点击 ---
+                ID_MENU_SETTINGS => {
+                    info!("wndproc: '设置' 菜单项被点击。");
+                    // 创建并显示设置窗口
+                    // 我们需要克隆 Arc 以便在新线程或窗口中使用
+                    let app_state_clone = app_state_arc.clone();
+                    settings_ui::show(window, app_state_clone);
                 }
                 ID_MENU_EXIT => {
                     info!("wndproc: '退出' 菜单项被点击。");
@@ -407,6 +474,7 @@ fn show_context_menu(hwnd: HWND) {
     unsafe {
         // TODO: 根據目前的 is_paused 狀態，動態修改選單文字
         let _ = AppendMenuW(menu, MF_STRING, ID_MENU_PAUSE_RESUME as usize, w!("暫停/恢復播報"));
+        let _ = AppendMenuW(menu, MF_STRING, ID_MENU_SETTINGS as usize, w!("设置..."));
         let _ = AppendMenuW(menu, MF_STRING, ID_MENU_EXIT as usize, w!("退出"));
         
         let mut point = Default::default();

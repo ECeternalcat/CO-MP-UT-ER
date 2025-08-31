@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SystemEvent"],"fn":["get_sender","run_message_loop","setup_battery_monitor","setup_network_monitor","start_monitoring","wndproc"]};

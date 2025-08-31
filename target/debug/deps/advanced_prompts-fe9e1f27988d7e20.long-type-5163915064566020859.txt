@@ -1,0 +1,1 @@
+&SuspendingEventHandler: Param<EventHandler<ApplicationModel::SuspendingEventArgs>, InterfaceType>

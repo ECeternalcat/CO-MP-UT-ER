@@ -1,0 +1,11 @@
+C:\Users\etern\OneDrive\文档\Code\advanced_prompts\target\debug\deps\windows_result-8a5c2b4f2578f91f.d: C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\lib.rs C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\bindings.rs C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\com.rs C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\strings.rs C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\bstr.rs C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\error.rs C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\hresult.rs
+
+C:\Users\etern\OneDrive\文档\Code\advanced_prompts\target\debug\deps\libwindows_result-8a5c2b4f2578f91f.rmeta: C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\lib.rs C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\bindings.rs C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\com.rs C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\strings.rs C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\bstr.rs C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\error.rs C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\hresult.rs
+
+C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\lib.rs:
+C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\bindings.rs:
+C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\com.rs:
+C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\strings.rs:
+C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\bstr.rs:
+C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\error.rs:
+C:\Users\etern\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-result-0.2.0\src\hresult.rs:

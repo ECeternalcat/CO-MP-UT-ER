@@ -1,1 +1,0 @@
-&TypedEventHandler<IInspectable, IInspectable>: Param<NetworkStatusChangedEventHandler, InterfaceType>

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["BackendId","Backends","Error","Gender","UtteranceId"],"struct":["Features","LanguageTag","Tts","Voice"],"trait":["Backend"]};

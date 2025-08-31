@@ -114,7 +114,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let hwnd = unsafe {
         CreateWindowExW(
-            Default::default(), class_name, w!("Advanced Prompts"), WS_OVERLAPPEDWINDOW,
+            Default::default(), class_name, w!("CO/MP/UT/ER"), WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             None, None, Some(instance.into()), Some(window_proc_data as *mut c_void),
         )?
@@ -378,7 +378,7 @@ fn add_tray_icon(hwnd: HWND) {
     nid.uCallbackMessage = WM_APP_TRAY_MSG;
     nid.hIcon = unsafe { LoadIconW(None, IDI_APPLICATION).unwrap_or_default() };
     
-    let tip = w!("Advanced Prompts");
+    let tip = w!("CO/MP/UT/ER");
     unsafe {
         nid.szTip[..tip.len()].copy_from_slice(tip.as_wide());
     }

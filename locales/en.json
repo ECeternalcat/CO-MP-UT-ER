@@ -18,6 +18,17 @@
   "network_connected_ethernet": "Hardline connection established. Network link is active.",
   "network_connected_unknown": "Network link established. Connected to {SSID}.",
   "system_going_to_sleep": "System entering sleep mode. Powering down non-essential modules.",
-  "system_resumed_from_sleep": "System resuming from sleep. All modules back online."
+  "system_resumed_from_sleep": "System resuming from sleep. All modules back online.",
+
+  "menu_pause_resume": "Pause/Resume Announcing",
+  "menu_settings": "Settings...",
+  "menu_exit": "Exit",
+  
+  "settings_window_title": "Settings",
+  "settings_label_voice": "Voice:",
+  "settings_label_language": "Language:",
+  "settings_checkbox_autostart": "Start with Windows",
+  "settings_button_ok": "OK",
+  "settings_button_cancel": "Cancel"
   
 }

@@ -18,6 +18,17 @@
     "network_connected_ethernet": "有线连接已建立。网络连接处于活动状态。",
     "network_connected_unknown": "网络连接已建立。已连接到 {SSID}。",
     "system_going_to_sleep": "系统进入睡眠模式。正在关闭非关键模块。",
-    "system_resumed_from_sleep": "系统已从睡眠恢复。所有模块已重新上线。"
+    "system_resumed_from_sleep": "系统已从睡眠恢复。所有模块已重新上线。",
+
+    "menu_pause_resume": "暂停/恢复播报",
+    "menu_settings": "设置...",
+    "menu_exit": "退出",
+
+    "settings_window_title": "设置",
+    "settings_label_voice": "语音:",
+    "settings_label_language": "语言:",
+    "settings_checkbox_autostart": "开机自启动",
+    "settings_button_ok": "确定",
+    "settings_button_cancel": "取消"
 
 }

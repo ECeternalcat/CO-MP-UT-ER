@@ -11,13 +11,13 @@ use windows::Win32::Graphics::Gdi::{GetStockObject, HBRUSH, WHITE_BRUSH};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::System::SystemServices::SS_LEFT;
 use windows::Win32::UI::Controls::{BST_CHECKED, BST_UNCHECKED};
-use windows::Win32::UI::WindowsAndMessaging::{CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW, GetWindowLongPtrW, LoadCursorW, PostMessageW, PostQuitMessage, RegisterClassW, SendMessageW, SetWindowLongPtrW, TranslateMessage, BM_GETCHECK, BM_SETCHECK, BS_AUTOCHECKBOX, BS_DEFPUSHBUTTON, CBS_DROPDOWNLIST, CB_ADDSTRING, CB_GETCURSEL, CB_GETLBTEXT, CB_GETLBTEXTLEN, CB_SETCURSEL, CREATESTRUCTW, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GWLP_USERDATA, HMENU, IDC_ARROW, MSG, WINDOW_STYLE, WM_CLOSE, WM_DESTROY, WNDCLASSW, WS_CAPTION, WS_CHILD, WS_EX_DLGMODALFRAME, WS_SYSMENU, WS_VISIBLE, WS_VSCROLL};
+use windows::Win32::UI::WindowsAndMessaging::{CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW, GetWindowLongPtrW, LoadCursorW, PostMessageW, PostQuitMessage, RegisterClassW, SendMessageW, SetWindowLongPtrW, TranslateMessage, BM_GETCHECK, BM_SETCHECK, BS_AUTOCHECKBOX, BS_DEFPUSHBUTTON, CBS_DROPDOWNLIST, CB_ADDSTRING, CB_GETCURSEL, CB_SETCURSEL, CREATESTRUCTW, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GWLP_USERDATA, HMENU, IDC_ARROW, MSG, WINDOW_STYLE, WM_CLOSE, WM_DESTROY, WNDCLASSW, WS_CAPTION, WS_CHILD, WS_EX_DLGMODALFRAME, WS_SYSMENU, WS_VISIBLE, WS_VSCROLL};
 use windows::Win32::UI::Input::KeyboardAndMouse::{EnableWindow, SetActiveWindow};
 
 
 use crate::i18n::I18nManager;
 use crate::AppState;
-use log::{info, error};
+use log::{error, info, warn};
 
 const IDC_VOICE_LABEL: i32 = 101;
 const IDC_VOICE_COMBO: i32 = 102;
@@ -60,6 +60,13 @@ pub fn show(parent: HWND, app_state: Arc<Mutex<AppState>>) {
     register_settings_class();
     let instance = unsafe { GetModuleHandleW(None).unwrap() };
 
+    // --- 新增: 在创建窗口前，先获取翻译后的标题 ---
+    let window_title = {
+        // 使用一个代码块来限制锁的生命周期
+        let state = app_state.lock().unwrap();
+        state.i18n_manager.get_text("settings_window_title").unwrap_or_else(|| "Settings".to_string())
+    };
+
     let data = Box::new(SettingsWindowData {
         app_state,
         h_voice_combo: HWND::default(),
@@ -73,23 +80,15 @@ pub fn show(parent: HWND, app_state: Arc<Mutex<AppState>>) {
         CreateWindowExW(
             WS_EX_DLGMODALFRAME,
             &*SETTINGS_CLASS_NAME,
-            w!("Settings"),
+            // --- 修改: 使用我们刚刚获取的翻译后的标题 ---
+            &HSTRING::from(window_title),
             WS_CAPTION | WS_SYSMENU | WS_VISIBLE,
-            CW_USEDEFAULT, CW_USEDEFAULT, 400, 220,
+            CW_USEDEFAULT, CW_USEDEFAULT, 400, 220, // 调整了窗口高度以适应新布局
             Some(parent),
             None,
             Some(instance.into()),
             Some(data_ptr as *mut c_void),
         )
-    };
-    
-    let hwnd = match hwnd_result {
-        Ok(h) => h,
-        Err(e) => {
-             error!("创建设置窗口失败！Error: {}", e);
-             let _ = unsafe { Box::from_raw(data_ptr) };
-             return;
-        }
     };
     
     // 现在 EnableWindow 已经被正确引入，可以被找到了
@@ -161,92 +160,39 @@ extern "system" fn settings_wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpara
 fn create_controls(parent: HWND, data: &mut SettingsWindowData) {
     let instance = unsafe { GetModuleHandleW(None).unwrap() };
     
+    // --- 新增: 在函数开头一次性获取所有需要的翻译文本 ---
+    // 这样做是为了保持代码整洁，并尽量缩短互斥锁的锁定时间。
+    let (lbl_voice, lbl_lang, chk_autostart, btn_ok, btn_cancel) = {
+        let app_state = data.app_state.lock().unwrap();
+        let i18n = &app_state.i18n_manager;
+        (
+            i18n.get_text("settings_label_voice").unwrap_or_else(|| "Voice:".to_string()),
+            i18n.get_text("settings_label_language").unwrap_or_else(|| "Language:".to_string()),
+            i18n.get_text("settings_checkbox_autostart").unwrap_or_else(|| "Start with Windows".to_string()),
+            i18n.get_text("settings_button_ok").unwrap_or_else(|| "OK".to_string()),
+            i18n.get_text("settings_button_cancel").unwrap_or_else(|| "Cancel".to_string()),
+        )
+    };
+
     unsafe {
         // --- 语音选择 (Voice) ---
-        CreateWindowExW(
-            Default::default(),
-            w!("STATIC"),
-            w!("Voice:"),
-            WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | SS_LEFT.0),
-            20, 20, 80, 25,
-            Some(parent),
-            Some(HMENU((IDC_VOICE_LABEL as isize) as *mut c_void)),
-            Some(instance.into()),
-            None
-        ).unwrap();
-        data.h_voice_combo = CreateWindowExW(
-            Default::default(),
-            w!("COMBOBOX"),
-            None,
-            WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | (CBS_DROPDOWNLIST as u32) | WS_VSCROLL.0),
-            100, 20, 250, 200,
-            Some(parent),
-            Some(HMENU((IDC_VOICE_COMBO as isize) as *mut c_void)),
-            Some(instance.into()),
-            None
-        ).unwrap();
+        // 修改: 使用翻译后的文本 &HSTRING::from(lbl_voice)
+        CreateWindowExW(Default::default(), w!("STATIC"), &HSTRING::from(lbl_voice), WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | SS_LEFT.0), 20, 20, 80, 25, Some(parent), Some(HMENU((IDC_VOICE_LABEL as isize) as *mut c_void)), Some(instance.into()), None).unwrap();
+        data.h_voice_combo = CreateWindowExW(Default::default(), w!("COMBOBOX"), None, WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | (CBS_DROPDOWNLIST as u32) | WS_VSCROLL.0), 100, 20, 250, 200, Some(parent), Some(HMENU((IDC_VOICE_COMBO as isize) as *mut c_void)), Some(instance.into()), None).unwrap();
 
         // --- 语言选择 (Language) ---
-        CreateWindowExW(
-            Default::default(),
-            w!("STATIC"),
-            w!("Language:"),
-            WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | SS_LEFT.0),
-            20, 70, 80, 25,
-            Some(parent),
-            Some(HMENU((IDC_LANG_LABEL as isize) as *mut c_void)),
-            Some(instance.into()),
-            None
-        ).unwrap();
-        data.h_lang_combo = CreateWindowExW(
-            Default::default(),
-            w!("COMBOBOX"),
-            None,
-            // 注意: ComboBox 也有 CBS_DROPDOWNLIST 样式
-            WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | (CBS_DROPDOWNLIST as u32)),
-            100, 70, 250, 100,
-            Some(parent),
-            Some(HMENU((IDC_LANG_COMBO as isize) as *mut c_void)),
-            Some(instance.into()),
-            None
-        ).unwrap();
+        // 修改: 使用翻译后的文本 &HSTRING::from(lbl_lang)
+        CreateWindowExW(Default::default(), w!("STATIC"), &HSTRING::from(lbl_lang), WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | SS_LEFT.0), 20, 70, 80, 25, Some(parent), Some(HMENU((IDC_LANG_LABEL as isize) as *mut c_void)), Some(instance.into()), None).unwrap();
+        data.h_lang_combo = CreateWindowExW(Default::default(), w!("COMBOBOX"), None, WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | (CBS_DROPDOWNLIST as u32)), 100, 70, 250, 100, Some(parent), Some(HMENU((IDC_LANG_COMBO as isize) as *mut c_void)), Some(instance.into()), None).unwrap();
 
-        // --- 开机自启动 (Start with Windows) --- (调整了Y坐标)
-        data.h_autostart_check = CreateWindowExW(
-            Default::default(),
-            w!("BUTTON"),
-            w!("Start with Windows"),
-            WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | (BS_AUTOCHECKBOX as u32)),
-            20, 110, 200, 25,
-            Some(parent),
-            Some(HMENU((IDC_AUTOSTART_CHECK as isize) as *mut c_void)),
-            Some(instance.into()),
-            None
-        ).unwrap();
+        // --- 开机自启动 (Start with Windows) ---
+        // 修改: 使用翻译后的文本 &HSTRING::from(chk_autostart)
+        data.h_autostart_check = CreateWindowExW(Default::default(), w!("BUTTON"), &HSTRING::from(chk_autostart), WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | (BS_AUTOCHECKBOX as u32)), 20, 110, 200, 25, Some(parent), Some(HMENU((IDC_AUTOSTART_CHECK as isize) as *mut c_void)), Some(instance.into()), None).unwrap();
 
-        // --- 按钮 --- (调整了Y坐标)
-        CreateWindowExW(
-            Default::default(),
-            w!("BUTTON"),
-            w!("OK"),
-            WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | (BS_DEFPUSHBUTTON as u32)),
-            120, 150, 100, 30,
-            Some(parent),
-            Some(HMENU((IDOK as isize) as *mut c_void)),
-            Some(instance.into()),
-            None
-        ).unwrap();
-        CreateWindowExW(
-            Default::default(),
-            w!("BUTTON"),
-            w!("Cancel"),
-            WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0),
-            240, 150, 100, 30,
-            Some(parent),
-            Some(HMENU((IDCANCEL as isize) as *mut c_void)),
-            Some(instance.into()),
-            None
-        ).unwrap();
+        // --- 按钮 ---
+        // 修改: 使用翻译后的文本 &HSTRING::from(btn_ok) 和 &HSTRING::from(btn_cancel)
+        CreateWindowExW(Default::default(), w!("BUTTON"), &HSTRING::from(btn_ok), WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | (BS_DEFPUSHBUTTON as u32)), 120, 150, 100, 30, Some(parent), Some(HMENU((IDOK as isize) as *mut c_void)), Some(instance.into()), None).unwrap();
+        CreateWindowExW(Default::default(), w!("BUTTON"), &HSTRING::from(btn_cancel), WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0), 240, 150, 100, 30, Some(parent), Some(HMENU((IDCANCEL as isize) as *mut c_void)), Some(instance.into()), None).unwrap();
     }
 }
 
@@ -255,21 +201,18 @@ fn initialize_controls(data: &mut SettingsWindowData) {
     let config = &app_state.config;
 
     // --- 初始化语言下拉框 ---
-    // (语言代码, 显示名称)
     let supported_langs = vec![("en", "English"), ("zh", "简体中文"), ("ja", "日本語")];
     let mut lang_selected_index = 0;
-
     for (i, (code, display_name)) in supported_langs.iter().enumerate() {
         let h_name = HSTRING::from(*display_name);
         unsafe { SendMessageW(data.h_lang_combo, CB_ADDSTRING, Some(WPARAM(0)), Some(LPARAM(h_name.as_ptr() as isize))); }
-        // 检查配置中的语言是否与当前项匹配
         if config.language.as_deref() == Some(*code) {
             lang_selected_index = i;
         }
     }
     unsafe { SendMessageW(data.h_lang_combo, CB_SETCURSEL, Some(WPARAM(lang_selected_index)), Some(LPARAM(0))); }
 
-    // FIX: 将 WPARAM 和 LPARAM 参数用 Some() 包裹
+    // --- 初始化自启动复选框 ---
     unsafe { 
         SendMessageW(
             data.h_autostart_check, 
@@ -279,49 +222,26 @@ fn initialize_controls(data: &mut SettingsWindowData) {
         ); 
     }
 
+    // --- 初始化语音下拉框 (唯一的一次) ---
     let voices = &app_state.available_voices;
     if voices.is_empty() {
-        // 处理获取语音失败的情况
         let unavailable_msg = HSTRING::from("<Unavailable>");
         unsafe { SendMessageW(data.h_voice_combo, CB_ADDSTRING, Some(WPARAM(0)), Some(LPARAM(unavailable_msg.as_ptr() as isize))); }
     } else {
         let mut selected_index: usize = 0;
-        for (i, voice_name) in voices.iter().enumerate() {
-            let h_voice = HSTRING::from(voice_name.as_str());
-            unsafe { SendMessageW(data.h_voice_combo, CB_ADDSTRING, Some(WPARAM(0)), Some(LPARAM(h_voice.as_ptr() as isize))); }
+        for (i, voice) in voices.iter().enumerate() {
+            // 组合显示文本
+            let display_text = format!("{} ({})", voice.name, voice.language);
+            let h_display_text = HSTRING::from(display_text.as_str());
             
-            if config.custom_voice.as_deref() == Some(voice_name.as_str()) {
+            unsafe { SendMessageW(data.h_voice_combo, CB_ADDSTRING, Some(WPARAM(0)), Some(LPARAM(h_display_text.as_ptr() as isize))); }
+            
+            // 匹配纯名称
+            if config.custom_voice.as_deref() == Some(&voice.name) {
                 selected_index = i;
             }
         }
         unsafe { SendMessageW(data.h_voice_combo, CB_SETCURSEL, Some(WPARAM(selected_index)), Some(LPARAM(0))); }
-    }
-
-    let mut selected_index: usize = 0;
-    for (i, voice_name) in voices.iter().enumerate() {
-        let h_voice = HSTRING::from(voice_name.as_str());
-        // FIX: 将 WPARAM 和 LPARAM 参数用 Some() 包裹
-        unsafe { 
-            SendMessageW(
-                data.h_voice_combo, 
-                CB_ADDSTRING, 
-                Some(WPARAM(0)), 
-                Some(LPARAM(h_voice.as_ptr() as isize))
-            ); 
-        }
-        
-        if config.custom_voice.as_deref() == Some(voice_name.as_str()) {
-            selected_index = i;
-        }
-    }
-    // FIX: 将 WPARAM 和 LPARAM 参数用 Some() 包裹
-    unsafe { 
-        SendMessageW(
-            data.h_voice_combo, 
-            CB_SETCURSEL, 
-            Some(WPARAM(selected_index)), 
-            Some(LPARAM(0))
-        ); 
     }
 }
 
@@ -366,30 +286,22 @@ fn save_settings(data: &mut SettingsWindowData) {
         error!("保存开机自启动设置到注册表失败: {}", e);
     }
 
-    // FIX: 将 WPARAM 和 LPARAM 参数用 Some() 包裹
     let selected_index = unsafe { SendMessageW(data.h_voice_combo, CB_GETCURSEL, Some(WPARAM(0)), Some(LPARAM(0))) }.0 as i32;
     if selected_index >= 0 {
-        // FIX: 将 WPARAM 和 LPARAM 参数用 Some() 包裹
-        let text_len = unsafe { SendMessageW(data.h_voice_combo, CB_GETLBTEXTLEN, Some(WPARAM(selected_index as usize)), Some(LPARAM(0))) }.0 as usize;
-        let mut buffer: Vec<u16> = vec![0; text_len + 1];
-        
-        // FIX: 将 WPARAM 和 LPARAM 参数用 Some() 包裹
-        unsafe { 
-            SendMessageW(
-                data.h_voice_combo, 
-                CB_GETLBTEXT, 
-                Some(WPARAM(selected_index as usize)), 
-                Some(LPARAM(buffer.as_mut_ptr() as isize))
-            ); 
-        }
-        
-        let selected_voice_name = String::from_utf16_lossy(&buffer[..text_len]);
-        info!("设置窗口: 选中的语音是 '{}'", selected_voice_name);
+        // 直接从缓存的详细列表中根据索引获取语音名称
+        if let Some(selected_voice) = app_state.available_voices.get(selected_index as usize) {
+            let voice_name_to_save = selected_voice.name.clone();
+            info!("设置窗口: 选中的语音是 '{}'", voice_name_to_save);
 
-        app_state.config.custom_voice = Some(selected_voice_name.clone());
+            // 更新配置对象
+            app_state.config.custom_voice = Some(voice_name_to_save.clone());
 
-        if let Err(e) = app_state.tts_engine.set_voice(&selected_voice_name) {
-            error!("动态应用新语音失败: {}", e);
+            // 立即应用新的语音
+            if let Err(e) = app_state.tts_engine.set_voice(&voice_name_to_save) {
+                error!("动态应用新语音失败: {}", e);
+            }
+        } else {
+            warn!("未能根据索引 {} 找到对应的语音信息。", selected_index);
         }
     }
 

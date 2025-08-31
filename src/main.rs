@@ -15,11 +15,11 @@ use std::time::{Duration, Instant};
 
 use std::ffi::c_void;
 use std::sync::{mpsc, Arc, Mutex};
-use windows::core::w;
+use windows::core::{w, HSTRING};
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::UI::Shell::{Shell_NotifyIconW, NOTIFYICONDATAW, NIM_ADD, NIM_DELETE, NIF_ICON, NIF_MESSAGE, NIF_TIP};
 use windows::Win32::UI::WindowsAndMessaging::{
-    AppendMenuW, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetCursorPos, GetWindowLongPtrW, LoadIconW, PeekMessageW, PostQuitMessage, RegisterClassW, RegisterDeviceNotificationW, SetForegroundWindow, SetWindowLongPtrW, TrackPopupMenu, TranslateMessage, CREATESTRUCTW, CW_USEDEFAULT, GWLP_USERDATA, IDI_APPLICATION, MF_STRING, PM_REMOVE, TPM_BOTTOMALIGN, WM_APP, WM_COMMAND, WM_CREATE, WM_DESTROY, WM_DEVICECHANGE, WM_POWERBROADCAST, WM_RBUTTONUP, WNDCLASSW, WS_OVERLAPPEDWINDOW
+    AppendMenuW, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetCursorPos, GetWindowLongPtrW, LoadIconW, PeekMessageW, PostQuitMessage, RegisterClassW, RegisterDeviceNotificationW, SetForegroundWindow, SetWindowLongPtrW, TrackPopupMenu, TranslateMessage, CREATESTRUCTW, CW_USEDEFAULT, GWLP_USERDATA, IDI_APPLICATION, MF_STRING, PM_REMOVE, TPM_BOTTOMALIGN, TPM_LEFTALIGN, WM_APP, WM_COMMAND, WM_CREATE, WM_DESTROY, WM_DEVICECHANGE, WM_POWERBROADCAST, WM_RBUTTONUP, WNDCLASSW, WS_OVERLAPPEDWINDOW
 };
 use windows::Win32::System::Power::{GetSystemPowerStatus, RegisterPowerSettingNotification, POWERBROADCAST_SETTING, SYSTEM_POWER_STATUS};
 use windows::Win32::System::SystemServices::GUID_ACDC_POWER_SOURCE;
@@ -28,6 +28,7 @@ use windows::Win32::Devices::Usb::GUID_DEVINTERFACE_USB_DEVICE;
 use windows::Win32::System::WindowsProgramming::GetUserNameW;
 use windows::core::PWSTR;
 
+use crate::tts_engine::VoiceDetail;
 use crate::config::Config;
 use crate::event_monitor::{SystemEvent, ConnectionType, start_monitoring, IS_SYSTEM_ASLEEP};
 use crate::i18n::I18nManager;
@@ -53,7 +54,7 @@ struct AppState {
     last_usb_connect_time: Option<Instant>,
     last_usb_disconnect_time: Option<Instant>,
     config: Config,
-    available_voices: Vec<String>,
+    available_voices: Vec<VoiceDetail>,
 }
 
 // --- 修改: main 函数返回 Result ---
@@ -103,23 +104,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let (sender, receiver) = mpsc::channel();
-    let locale = "en"; // 备用参数
     
     // 步骤 3: 初始化语音引擎时，传入配置
-    let tts_engine = TtsEngine::new(&config).map_err(|e| {
-        error!("语音引擎初始化失败: {}", e);
-        e
-    })?;
+    let tts_engine = TtsEngine::new(&config)?;
+    info!("TTS 语音引擎初始化成功。");
 
-    // --- 新增: 在这里获取并缓存语音列表 ---
+    // --- 修改: 现在获取的是详细的语音列表 ---
     let available_voices = match tts_engine.list_available_voices() {
         Ok(voices) => {
-            info!("成功获取到 {} 个可用语音。", voices.len());
+            info!("成功获取到 {} 个可用语音的详细信息。", voices.len());
             voices
         },
         Err(e) => {
             error!("启动时获取可用语音列表失败: {}", e);
-            vec![] // 如果失败，则提供一个空的列表
+            vec![]
         }
     };
 
@@ -278,9 +276,32 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
         }
         // ... 其他消息处理保持不变 ...
         WM_APP_TRAY_MSG => {
-            if lparam.0 as u32 == WM_RBUTTONUP {
+            if (lparam.0 as u32 & 0xFFFF) == WM_RBUTTONUP {
                 debug!("wndproc: 接收到系统托盘右键点击消息。");
-                show_context_menu(window);
+
+                // --- 将 show_context_menu 的逻辑直接移到这里 ---
+                let menu = unsafe { CreatePopupMenu().unwrap() };
+
+                // 从 AppState 获取翻译
+                let app_state = app_state_arc.lock().unwrap();
+                let i18n = &app_state.i18n_manager;
+                let pause_resume_text = i18n.get_text("menu_pause_resume").unwrap_or_else(|| "Pause/Resume".to_string());
+                let settings_text = i18n.get_text("menu_settings").unwrap_or_else(|| "Settings...".to_string());
+                let exit_text = i18n.get_text("menu_exit").unwrap_or_else(|| "Exit".to_string());
+
+                unsafe {
+                    // 使用翻译后的文本创建菜单项
+                    AppendMenuW(menu, MF_STRING, ID_MENU_PAUSE_RESUME as usize, &HSTRING::from(pause_resume_text)).ok();
+                    AppendMenuW(menu, MF_STRING, ID_MENU_SETTINGS as usize, &HSTRING::from(settings_text)).ok();
+                    AppendMenuW(menu, MF_STRING, ID_MENU_EXIT as usize, &HSTRING::from(exit_text)).ok();
+                    
+                    let mut point = Default::default();
+                    GetCursorPos(&mut point).ok();
+                    
+                    let _ = SetForegroundWindow(window);
+                    
+                    let _ = TrackPopupMenu(menu, TPM_BOTTOMALIGN | TPM_LEFTALIGN, point.x, point.y, Some(0), window, None).ok();
+                }
             }
             LRESULT(0)
         }
@@ -466,23 +487,5 @@ fn remove_tray_icon(hwnd: HWND) {
         info!("系统托盘图标移除成功。");
     } else {
         warn!("系统托盘图标移除失败 (可能是因为窗口已销毁)。");
-    }
-}
-
-fn show_context_menu(hwnd: HWND) {
-    let menu = unsafe { CreatePopupMenu().unwrap() };
-    unsafe {
-        // TODO: 根據目前的 is_paused 狀態，動態修改選單文字
-        let _ = AppendMenuW(menu, MF_STRING, ID_MENU_PAUSE_RESUME as usize, w!("暫停/恢復播報"));
-        let _ = AppendMenuW(menu, MF_STRING, ID_MENU_SETTINGS as usize, w!("设置..."));
-        let _ = AppendMenuW(menu, MF_STRING, ID_MENU_EXIT as usize, w!("退出"));
-        
-        let mut point = Default::default();
-        let _ = GetCursorPos(&mut point);
-        
-        // 必須設為前景，否則選單在失去焦點時不會自動關閉
-        let _ = SetForegroundWindow(hwnd);
-        
-        let _ = TrackPopupMenu(menu, TPM_BOTTOMALIGN, point.x, point.y, Some(0), hwnd, None);
     }
 }

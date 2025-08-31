@@ -5,10 +5,19 @@ use tts::Tts;
 use log::{info, warn, error};
 use std::error::Error;
 
+#[derive(Clone, Debug)] // 添加 Clone 和 Debug trait
+pub struct VoiceDetail {
+    pub name: String,
+    pub language: String,
+}
+
 pub struct TtsEngine {
     // Tts 实例现在是唯一的字段
     tts: Tts,
 }
+
+
+
 
 impl TtsEngine {
     /// 创建一个新的 TtsEngine 实例。
@@ -52,12 +61,12 @@ impl TtsEngine {
         Ok(())
     }
     
-    /// --- 新增 ---
-    /// 获取系统中所有可用语音的名称列表。
-    /// 这个方法是为设置窗口的下拉列表准备数据的。
-    pub fn list_available_voices(&self) -> Result<Vec<String>, Box<dyn Error>> {
+    pub fn list_available_voices(&self) -> Result<Vec<VoiceDetail>, Box<dyn Error>> {
         let voices = self.tts.voices()?;
-        Ok(voices.iter().map(|v| v.name().to_string()).collect())
+        Ok(voices.iter().map(|v| VoiceDetail {
+            name: v.name().to_string(),
+            language: v.language().to_string(),
+        }).collect())
     }
 
     /// --- 新增 ---

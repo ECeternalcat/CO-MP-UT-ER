@@ -18,6 +18,17 @@
     "network_connected_ethernet": "有線接続が確立されました。ネットワーク接続が有効です。",
     "network_connected_unknown": "ネットワーク接続が確立されました。{SSID} に接続しました。",
     "system_going_to_sleep": "システムはスリープモードに入ります。不要なモジュールをシャットダウンします。",
-    "system_resumed_from_sleep": "システムがスリープから復帰しました。すべてのモジュールが再びオンラインになりました。"
+    "system_resumed_from_sleep": "システムがスリープから復帰しました。すべてのモジュールが再びオンラインになりました。",
+
+    "menu_pause_resume": "アナウンスを一時停止/再開",
+    "menu_settings": "設定...",
+    "menu_exit": "終了",
+
+    "settings_window_title": "設定",
+    "settings_label_voice": "音声:",
+    "settings_label_language": "言語:",
+    "settings_checkbox_autostart": "Windowsと同時に起動",
+    "settings_button_ok": "OK",
+    "settings_button_cancel": "キャンセル"
 
 }

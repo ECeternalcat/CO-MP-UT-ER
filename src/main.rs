@@ -11,11 +11,12 @@ mod settings_ui;
 
 // --- 新增: 引入日志宏 ---
 use log::{info, error, warn, debug};
+use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use std::time::{Duration, Instant};
 
 use std::ffi::c_void;
 use std::sync::{mpsc, Arc, Mutex};
-use windows::core::{w, HSTRING};
+use windows::core::{w, HSTRING, PCWSTR};
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::UI::Shell::{Shell_NotifyIconW, NOTIFYICONDATAW, NIM_ADD, NIM_DELETE, NIF_ICON, NIF_MESSAGE, NIF_TIP};
 use windows::Win32::UI::WindowsAndMessaging::{
@@ -464,12 +465,27 @@ fn add_tray_icon(hwnd: HWND) {
     nid.uID = 1;
     nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
     nid.uCallbackMessage = WM_APP_TRAY_MSG;
-    nid.hIcon = unsafe { LoadIconW(None, IDI_APPLICATION).unwrap_or_default() };
+
+    unsafe {
+        let instance = GetModuleHandleW(None).unwrap();
+        
+        // --- 核心修改：添加详细的错误检查 ---
+        match LoadIconW(Some(instance.into()), PCWSTR(1 as *const u16)) {
+            Ok(h_icon) => {
+                info!("成功从资源加载自定义图标。句柄: {:?}", h_icon);
+                nid.hIcon = h_icon;
+            },
+            Err(e) => {
+                // 如果加载失败，记录详细错误并回退到默认图标
+                error!("从资源加载自定义图标失败: {}。将回退到默认应用程序图标。", e);
+                nid.hIcon = LoadIconW(None, IDI_APPLICATION).unwrap_or_default();
+            }
+        }
+    }
     
     let tip = w!("CO/MP/UT/ER");
-    unsafe {
-        nid.szTip[..tip.len()].copy_from_slice(tip.as_wide());
-    }
+    let tip_wide = unsafe { tip.as_wide() };
+    nid.szTip[..tip_wide.len()].copy_from_slice(tip_wide);
     
     if unsafe { Shell_NotifyIconW(NIM_ADD, &nid) }.as_bool() {
         info!("系统托盘图标添加成功。");

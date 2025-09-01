@@ -280,18 +280,20 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
             if (lparam.0 as u32 & 0xFFFF) == WM_RBUTTONUP {
                 debug!("wndproc: 接收到系统托盘右键点击消息。");
 
-                // --- 将 show_context_menu 的逻辑直接移到这里 ---
                 let menu = unsafe { CreatePopupMenu().unwrap() };
 
-                // 从 AppState 获取翻译
+                // 从 AppState 获取翻译和当前暂停状态
                 let app_state = app_state_arc.lock().unwrap();
                 let i18n = &app_state.i18n_manager;
-                let pause_resume_text = i18n.get_text("menu_pause_resume").unwrap_or_else(|| "Pause/Resume".to_string());
+
+                // --- 根据当前状态动态选择菜单文本 ---
+                let pause_resume_text_key = if app_state.is_paused { "menu_resume" } else { "menu_pause" };
+                let pause_resume_text = i18n.get_text(pause_resume_text_key).unwrap_or_else(|| "Pause/Resume".to_string());
+                
                 let settings_text = i18n.get_text("menu_settings").unwrap_or_else(|| "Settings...".to_string());
                 let exit_text = i18n.get_text("menu_exit").unwrap_or_else(|| "Exit".to_string());
 
                 unsafe {
-                    // 使用翻译后的文本创建菜单项
                     AppendMenuW(menu, MF_STRING, ID_MENU_PAUSE_RESUME as usize, &HSTRING::from(pause_resume_text)).ok();
                     AppendMenuW(menu, MF_STRING, ID_MENU_SETTINGS as usize, &HSTRING::from(settings_text)).ok();
                     AppendMenuW(menu, MF_STRING, ID_MENU_EXIT as usize, &HSTRING::from(exit_text)).ok();
@@ -306,22 +308,47 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
             }
             LRESULT(0)
         }
+
+        // --- 核心修改 2: 处理菜单点击事件 ---
         WM_COMMAND => {
             match wparam.0 as u32 {
                 ID_MENU_PAUSE_RESUME => {
                     info!("wndproc: '暂停/恢复播报' 菜单项被点击。");
-                    // TODO: 实现暂停/恢复逻辑
+                    let mut app_state = app_state_arc.lock().unwrap();
+                    
+                    // 切换暂停状态
+                    app_state.is_paused = !app_state.is_paused;
+                    
+                    let announcement_key = if app_state.is_paused { "announcement_paused" } else { "announcement_resumed" };
+                    if let Some(text) = app_state.i18n_manager.get_text(announcement_key) {
+                        info!("准备播报: '{}'", text);
+                        if let Err(e) = app_state.tts_engine.speak(&text) {
+                            error!("语音播报失败: {}", e);
+                        }
+                    }
                 }
-                // --- 新增: 处理设置菜单点击 ---
                 ID_MENU_SETTINGS => {
                     info!("wndproc: '设置' 菜单项被点击。");
-                    // 创建并显示设置窗口
-                    // 我们需要克隆 Arc 以便在新线程或窗口中使用
-                    let app_state_clone = app_state_arc.clone();
-                    settings_ui::show(window, app_state_clone);
+                    settings_ui::show(window, app_state_arc.clone());
                 }
                 ID_MENU_EXIT => {
                     info!("wndproc: '退出' 菜单项被点击。");
+                    
+                    // --- 在退出前进行语音播报 ---
+                    { // 创建一个新的作用域来限制锁的生命周期
+                        let mut app_state = app_state_arc.lock().unwrap();
+                        if let Some(text) = app_state.i18n_manager.get_text("announcement_exit") {
+                            info!("准备播报退出提示: '{}'", text);
+                            if let Err(e) = app_state.tts_engine.speak(&text) {
+                                error!("退出语音播报失败: {}", e);
+                            }
+                        }
+                    } // 锁在这里被释放
+                    
+                    // 等待一小段时间，确保语音有足够的时间开始播放
+                    std::thread::sleep(std::time::Duration::from_secs(5));
+
+                    // 发送销毁窗口的消息
                     let _ = unsafe { DestroyWindow(window) };
                 }
                 _ => {}

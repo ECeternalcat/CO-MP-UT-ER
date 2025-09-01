@@ -29,6 +29,11 @@
   "settings_label_language": "Language:",
   "settings_checkbox_autostart": "Start with Windows",
   "settings_button_ok": "OK",
-  "settings_button_cancel": "Cancel"
-  
+  "settings_button_cancel": "Cancel",
+  "menu_pause": "Pause Announcing",
+  "menu_resume": "Resume Announcing",
+  "announcement_paused": "Announcement paused.",
+  "announcement_resumed": "Announcement resumed.",
+  "announcement_exit": "Shutting down system. Goodbye."
+
 }

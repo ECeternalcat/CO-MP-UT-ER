@@ -29,6 +29,11 @@
     "settings_label_language": "言語:",
     "settings_checkbox_autostart": "Windowsと同時に起動",
     "settings_button_ok": "OK",
-    "settings_button_cancel": "キャンセル"
+    "settings_button_cancel": "キャンセル",
+    "menu_pause": "アナウンスを一時停止",
+    "menu_resume": "アナウンスを再開",
+    "announcement_paused": "アナウンスを一時停止しました。",
+    "announcement_resumed": "アナウンスを再開しました。",
+    "announcement_exit": "システムをシャットダウンします。さようなら。"
 
 }

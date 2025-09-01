@@ -16,7 +16,7 @@ once_cell = "1.21"
 sys-locale = "0.3"
 
 # 確保版本號和所有特性名稱都完全正確
-windows = { version = "0.61.3", features = [
+windows = { version = "0.61", features = [
     # Win32 Features
     "Win32_UI_Controls", 
     "Win32_UI_Shell",

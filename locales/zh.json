@@ -29,6 +29,11 @@
     "settings_label_language": "语言:",
     "settings_checkbox_autostart": "开机自启动",
     "settings_button_ok": "确定",
-    "settings_button_cancel": "取消"
+    "settings_button_cancel": "取消",
+    "menu_pause": "暂停播报",
+    "menu_resume": "恢复播报",
+    "announcement_paused": "播报已暂停。",
+    "announcement_resumed": "播报已恢复。",
+    "announcement_exit": "系统正在关机。再见。"
 
 }

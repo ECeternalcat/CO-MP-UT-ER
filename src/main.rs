@@ -15,17 +15,17 @@ use std::time::{Duration, Instant};
 
 use std::env;
 use std::ffi::c_void;
-// --- FIX: Add this `use` statement for the error trait ---
 use std::error::Error;
 use std::sync::{mpsc, Arc, Mutex};
 use windows::core::{w, HSTRING, PCWSTR};
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+// --- FIX: 引入 COM 初始化相关的常量 ---
+use windows::Win32::System::Com::{CoInitializeEx, COINIT_APARTMENTTHREADED};
 use windows::Win32::UI::Shell::{Shell_NotifyIconW, NOTIFYICONDATAW, NIM_ADD, NIM_DELETE, NIF_ICON, NIF_MESSAGE, NIF_TIP};
 use windows::Win32::UI::WindowsAndMessaging::{
     DBT_DEVICEARRIVAL, DBT_DEVICEREMOVECOMPLETE, DEV_BROADCAST_HDR, GetMessageW, MSG, AppendMenuW, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetCursorPos, GetWindowLongPtrW, LoadIconW, PostQuitMessage, RegisterClassW, RegisterDeviceNotificationW, SetForegroundWindow, SetWindowLongPtrW, TrackPopupMenu, TranslateMessage, CREATESTRUCTW, CW_USEDEFAULT, GWLP_USERDATA, IDI_APPLICATION, MF_STRING, TPM_BOTTOMALIGN, TPM_LEFTALIGN, WM_APP, WM_COMMAND, WM_CREATE, WM_DESTROY, WM_POWERBROADCAST, WM_RBUTTONUP, WNDCLASSW, WS_OVERLAPPEDWINDOW, PBT_APMSUSPEND, PBT_APMRESUMEAUTOMATIC, PBT_POWERSETTINGCHANGE, REGISTER_NOTIFICATION_FLAGS, DEV_BROADCAST_DEVICEINTERFACE_W, DBT_DEVTYP_DEVICEINTERFACE, DEVICE_NOTIFY_WINDOW_HANDLE, WM_DEVICECHANGE,
     PostMessageW,
 };
-
 use windows::Win32::System::Power::{GetSystemPowerStatus, RegisterPowerSettingNotification, POWERBROADCAST_SETTING, SYSTEM_POWER_STATUS};
 use windows::Win32::System::SystemServices::{GUID_ACDC_POWER_SOURCE, GUID_CONSOLE_DISPLAY_STATE};
 use windows::Win32::Devices::Usb::GUID_DEVINTERFACE_USB_DEVICE;
@@ -64,7 +64,6 @@ fn set_working_directory() -> Result<(), Box<dyn Error>> {
     let current_exe = env::current_exe()?;
     if let Some(parent_dir) = current_exe.parent() {
         env::set_current_dir(parent_dir)?;
-        // We can't log yet, but this is where it happens.
     } else {
         return Err("无法获取可执行文件的父目录".into());
     }
@@ -81,6 +80,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     info!("高级提示 (Advanced Beeper) 应用程式启动");
     info!("-----------------------------------------");
     info!("工作目录已设置为可执行文件所在目录。");
+
+    // --- CORE FIX: 为主线程初始化 COM ---
+    // 这对于所有使用 WinRT 的操作（如此处的 TTS）都是必需的。
+    let result = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) };
+    if result.is_err() {
+        // 将失败的 HRESULT 转换为可读的 Error 类型以便记录日志
+        let error = windows::core::Error::from(result);
+        error!("主线程 COM 初始化失败: {}", error);
+        return Err(Box::new(error));
+    }
+    info!("主线程 COM (STA) 初始化成功。");
+
 
     let config = Config::load();
     info!("配置文件 config.json 已加载: {:?}", config);
@@ -125,12 +136,24 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         }
-        // --- CORE FIX: Replaced ambiguous `.into()` with explicit `From` trait usage ---
         engine.ok_or_else(|| Box::<dyn Error>::from("TTS 引擎在3次尝试后仍无法初始化"))?
     };
 
-    let available_voices = tts_engine.list_available_voices().unwrap_or_default();
+    // 为这个调用增加日志，以便调试
+    let available_voices = match tts_engine.list_available_voices() {
+        Ok(voices) => {
+            info!("成功获取到 {} 个可用语音。", voices.len());
+            voices
+        },
+        Err(e) => {
+            error!("获取可用语音列表失败: {}", e);
+            // 即使失败，也继续运行，只是没有语音列表
+            vec![] 
+        }
+    };
+
     let i18n_manager = I18nManager::new(&effective_locale)?;
+    info!("国际化语言档案 (locale: {}) 载入成功。", effective_locale);
 
     let app_state = Arc::new(Mutex::new(AppState {
         is_paused: false,
@@ -188,6 +211,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+// ... wndproc 和其他函数保持不变 ...
 extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     if message == WM_CREATE {
         let create_struct = unsafe { &*(lparam.0 as *const CREATESTRUCTW) };

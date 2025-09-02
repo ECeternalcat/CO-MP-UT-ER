@@ -44,7 +44,7 @@ The application runs silently in the background, speaking only when important sy
 ## 🚀 Getting Started
 
 ### Installation
-1.  Go to the [Releases page](<[releases](https://github.com/ECeternalcat/CO-MP-UT-ER/releases)>).
+1.  Go to the [Releases page](https://github.com/ECeternalcat/CO-MP-UT-ER/releases).
 2.  Download the latest `COMPUTER.zip` file.
 3.  Unzip the archive to a location of your choice (e.g., `C:\Program Files\COMPUTER`).
 4.  Double-click `COMPUTER.exe` to run the application. An icon will appear in your system tray.

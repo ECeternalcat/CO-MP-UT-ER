@@ -3,6 +3,8 @@
 [![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
 [![Windows](https://img.shields.io/badge/platform-Windows-0078D6.svg)](https://www.microsoft.com/windows/)
 
+<div align="right"><strong><a href="README_zh.md">📄 <em>中文版</em></a></strong></div>
+
 **CO/MP/UT/ER** is a Windows utility that provides sci-fi-inspired auditory feedback for system events. Named in homage to the iconic computer systems from *Star Trek* and *Alien*, this application transforms your PC's standard notifications into clear, configurable voice prompts, creating a more immersive and informative user experience.
 
 The application runs silently in the background, speaking only when important system status changes occur.

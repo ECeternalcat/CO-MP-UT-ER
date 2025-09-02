@@ -52,7 +52,8 @@
 ### 設定
 您可以透過編輯與 `COMPUTER.exe` 位於同一目錄下的 `config.json` 檔案來自訂應用程式的行為。
 
-**`config.json` 範例:**```json
+**Example `config.json`:**
+```json
 {
   "custom_voice": "Microsoft Zira Desktop",
   "auto_start": true

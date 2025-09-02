@@ -1,9 +1,8 @@
+<div align="right"><strong><a href="README.md">📄 <em>Read this in English.</em></a></strong></div>
 # CO/MP/UT/ER
 ![logo](Assets/256h/256.png) 
 [![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
 [![Windows](https://img.shields.io/badge/platform-Windows-0078D6.svg)](https://www.microsoft.com/windows/)
-
-<div align="right"><strong><a href="README.md">📄 <em>Read this in English.</em></a></strong></div>
 
 **CO/MP/UT/ER** 是一款 Windows 實用工具，它能為各種系統事件提供充滿科幻風格的語音回饋。其命名旨在向經典科幻作品《星際旅行》和《異形》中的標誌性電腦系統致敬。本應用程式會將您電腦的標準通知音效，轉變為清晰、可配置的語音提示，從而創造出更具沉浸感和資訊豐富度的使用者體驗。
 

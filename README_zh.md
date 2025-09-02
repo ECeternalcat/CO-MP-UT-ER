@@ -44,7 +44,7 @@
 ## 🚀 快速開始
 
 ### 安裝
-1.  前往專案的 [Releases 頁面](<請在此處填寫您的Releases頁面連結>)。
+1.  前往專案的 [Releases 頁面](https://github.com/ECeternalcat/CO-MP-UT-ER/releases)。
 2.  下載最新的 `COMPUTER.zip` 檔案。
 3.  將壓縮檔解壓縮到您喜歡的位置（例如 `C:\Program Files\COMPUTER`）。
 4.  雙擊 `COMPUTER.exe` 即可運行本應用程式。一個圖示將會出現在您的系統匣中。

@@ -34,6 +34,7 @@
     "menu_resume": "恢复播报",
     "announcement_paused": "播报已暂停。",
     "announcement_resumed": "播报已恢复。",
-    "announcement_exit": "系统正在关机。再见。"
+    "announcement_exit": "系统正在关闭。再见。",
+    "announcement_language_changed": "已切换至中文。"
 
 }

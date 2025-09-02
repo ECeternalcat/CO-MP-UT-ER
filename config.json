@@ -1,5 +1,5 @@
 {
-  "custom_voice": "Microsoft Ayumi",
-  "auto_start": false,
+  "custom_voice": "Microsoft Ichiro",
+  "auto_start": true,
   "language": "ja"
 }

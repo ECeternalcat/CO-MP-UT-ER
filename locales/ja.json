@@ -34,6 +34,7 @@
     "menu_resume": "アナウンスを再開",
     "announcement_paused": "アナウンスを一時停止しました。",
     "announcement_resumed": "アナウンスを再開しました。",
-    "announcement_exit": "システムをシャットダウンします。さようなら。"
+    "announcement_exit": "システムをシャットダウンします。さようなら。",
+    "announcement_language_changed": "日本語に切り替えました。"
 
 }

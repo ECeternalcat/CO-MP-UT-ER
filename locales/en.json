@@ -34,6 +34,7 @@
   "menu_resume": "Resume Announcing",
   "announcement_paused": "Announcement paused.",
   "announcement_resumed": "Announcement resumed.",
-  "announcement_exit": "Shutting down system. Goodbye."
+  "announcement_exit": "Shutting down system. Goodbye.",
+  "announcement_language_changed": "Switched to English."
 
 }
